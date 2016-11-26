@@ -754,5 +754,4 @@ uchar * parallelCompressWeightedEdges(intEPair * edges, uintT * offsets, long n,
   return finalArr;
 }
 
-#
-endif
+#endif
