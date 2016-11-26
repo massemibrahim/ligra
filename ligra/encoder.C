@@ -41,10 +41,10 @@
 #endif
 #endif
 
-#include < iostream > 
-#include < fstream > 
-#include < stdlib.h > 
-#include < cmath > 
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <cmath>
 #include "parallel.h"
 #include "quickSort.h"
 #include "utils.h"
