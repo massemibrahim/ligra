@@ -21,17 +21,22 @@
 // LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-ifndef BYTECODE_H# define BYTECODE_H
+#ifndef BYTECODE_H
+#define BYTECODE_H
 
 typedef unsigned char uchar;
 
-#
-include < iostream > #include < fstream > #include < stdlib.h > #include < cmath > #include "parallel.h"#
-include "utils.h"#
-include < stdio.h > #include < string.h >
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <cmath>
+#include "parallel.h"
+#include "utils.h"
+#include <stdio.h>
+#include <string.h>
 
-  #define LAST_BIT_SET(b)(b & (0x80))# define EDGE_SIZE_PER_BYTE 7
+#define LAST_BIT_SET(b) (b & (0x80))
+#define EDGE_SIZE_PER_BYTE 7
 
 /* Reads the first edge of an out-edge list, which is the signed
    difference between the target and source. 

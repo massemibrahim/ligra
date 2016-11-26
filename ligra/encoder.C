@@ -23,23 +23,34 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 //include the code for the desired compression scheme
-#
-ifndef PD# ifdef BYTE# include "byte.h"#
-elif defined NIBBLE# include "nibble.h"#
-else# include "byteRLE.h"#
-endif#
-else //decode in parallel
-# ifdef BYTE# include "byte-pd.h"#
-elif defined NIBBLE# include "nibble-pd.h"#
-else# include "byteRLE-pd.h"#
-endif# endif
+#ifndef PD 
+#ifdef BYTE
+#include "byte.h"
+#elif defined NIBBLE
+#include "nibble.h"
+#else
+#include "byteRLE.h"
+#endif
+#else //decode in parallel
+#ifdef BYTE
+#include "byte-pd.h"
+#elif defined NIBBLE
+#include "nibble-pd.h"
+#else
+#include "byteRLE-pd.h"
+#endif
+#endif
 
-# include < iostream > #include < fstream > #include < stdlib.h > #include < cmath > #include "parallel.h"#
-include "quickSort.h"#
-include "utils.h"#
-include "graph.h"#
-include "IO.h"#
-include "parseCommandLine.h"
+# include < iostream > 
+#include < fstream > 
+#include < stdlib.h > 
+#include < cmath > 
+#include "parallel.h"
+#include "quickSort.h"
+#include "utils.h"
+#include "graph.h"
+#include "IO.h"
+#include "parseCommandLine.h"
 using namespace std;
 
 typedef pair < pair < uintE, uintE > , uintE > intTriple2;
