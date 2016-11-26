@@ -233,8 +233,15 @@ long compressEdges(uchar * start, long curOffset, uintE * savedEdges, uintE edge
   return curOffset;
 }
 
-#
-define ONE_BYTE 256# define TWO_BYTES 65536# define THREE_BYTES 16777216# define ONE_BYTE_SIGNED_MAX 128# define ONE_BYTE_SIGNED_MIN - 127# define TWO_BYTES_SIGNED_MAX 32768# define TWO_BYTES_SIGNED_MIN - 32767# define THREE_BYTES_SIGNED_MAX 8388608# define THREE_BYTES_SIGNED_MIN - 8388607
+#define ONE_BYTE 256
+#define TWO_BYTES 65536
+#define THREE_BYTES 16777216
+#define ONE_BYTE_SIGNED_MAX 128
+#define ONE_BYTE_SIGNED_MIN - 127
+#define TWO_BYTES_SIGNED_MAX 32768
+#define TWO_BYTES_SIGNED_MIN - 32767
+#define THREE_BYTES_SIGNED_MAX 8388608
+#define THREE_BYTES_SIGNED_MIN - 8388607
 
 /*
   Takes: 
