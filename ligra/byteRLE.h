@@ -254,7 +254,7 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
         // Store difference between cur and prev edge. 
         uintE difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
     
-        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << " - Difference = " << difference << endl;
+        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << ") - Difference = " << difference << endl;
 
         currentOffset = compressEdge(edgeArray, currentOffset, difference);
       }
