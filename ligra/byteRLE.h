@@ -246,13 +246,15 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
 
       // Added by Mohamed
       current_numa_node = savedEdges[edgeI] / vertex_per_numa_node;
+      cout << "Current NUMA Node = " << current_numa_node << endl;
+      cout << "Previous NUMA Node = " << last_numa_node << endl;
 
       if (current_numa_node == last_numa_node)
       {
         // Store difference between cur and prev edge. 
         uintE difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
     
-        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
+        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << " - Difference = " << difference << endl;
 
         currentOffset = compressEdge(edgeArray, currentOffset, difference);
       }
