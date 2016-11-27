@@ -234,19 +234,42 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
     // Define last NUMA node used
     int last_numa_node = -1;
 
+    // define the current numa node
+    int current_numa_node = -1;
 
+    // Commented by Mohamed
+    // // Compress the first edge whole, which is signed difference coded
+    // currentOffset = compressFirstEdge(edgeArray, currentOffset, 
+    //                                    vertexNum, savedEdges[0]);
+    // for (uintT edgeI=1; edgeI < degree; edgeI++) {
+    for (uintT edgeI=0; edgeI < degree; edgeI++) {
 
-    // Compress the first edge whole, which is signed difference coded
-    currentOffset = compressFirstEdge(edgeArray, currentOffset, 
-                                       vertexNum, savedEdges[0]);
-    for (uintT edgeI=1; edgeI < degree; edgeI++) {
-      // Store difference between cur and prev edge. 
-      uintE difference = savedEdges[edgeI] - 
-                        savedEdges[edgeI - 1];
+      // Added by Mohamed
+      current_numa_node = savedEdges[edgeI] / vertex_per_numa_node;
+
+      if (current_numa_node == last_numa_node)
+      {
+        // Store difference between cur and prev edge. 
+        uintE difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
     
-      cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
+        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
 
-      currentOffset = compressEdge(edgeArray, currentOffset, difference);
+        currentOffset = compressEdge(edgeArray, currentOffset, difference);
+      }
+      else
+      {
+        // Compress similar to the first edge whole, which is signed difference coded
+        currentOffset = compressFirstEdge(edgeArray, currentOffset, vertexNum, savedEdges[edgeI]); 
+      }
+
+      // Commented by Mohamed
+      // // Store difference between cur and prev edge. 
+      // uintE difference = savedEdges[edgeI] - 
+      //                   savedEdges[edgeI - 1];
+    
+      // cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
+
+      // currentOffset = compressEdge(edgeArray, currentOffset, difference);
     }
     // Increment nWritten after all of vertex n's neighbors are written
   }
