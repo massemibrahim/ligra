@@ -24,6 +24,8 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
+#define NUMA_NODES 2
+
 typedef unsigned char uchar;
 
 #include <iostream>
@@ -253,7 +255,8 @@ long compressEdges(uchar * start, long curOffset, uintE * savedEdges, uintE edge
   Returns:
     The new offset into the edge array
 */
-long sequentialCompressEdgeSet(uchar * edgeArray, long currentOffset, uintT degree, uintE vertexNum, uintE * savedEdges) {
+long sequentialCompressEdgeSet(uchar * edgeArray, long currentOffset, uintT degree, uintE vertexNum, uintE * savedEdges, 
+  int vertex_per_numa_node) {
 
   cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
 
@@ -357,10 +360,16 @@ uintE * parallelCompressEdges(uintE * edges, uintT * offsets, long n, long m, ui
     parallel_for(long i = 0; i < n; i++) {
       cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges + charsUsedArr[i];
+
+      // Added Mohamed
+      // Calculate the number of vertices per NUMA node
+      int vertex_per_numa_node = n / NUMA_NODES;
+      cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
+
       long charsUsed =
         sequentialCompressEdgeSet((uchar * )(iEdges + charsUsedArr[i]),
           0, degrees[i + 1] - degrees[i],
-          i, edges + offsets[i]);
+          i, edges + offsets[i], vertex_per_numa_node);
       charsUsedArr[i] = charsUsed;
     }
   }
