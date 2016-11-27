@@ -262,6 +262,9 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
         currentOffset = compressFirstEdge(edgeArray, currentOffset, vertexNum, savedEdges[edgeI]); 
       }
 
+      // Set the last NUMA node to current
+      last_numa_node = current_numa_node;
+
       // Commented by Mohamed
       // // Store difference between cur and prev edge. 
       // uintE difference = savedEdges[edgeI] - 
