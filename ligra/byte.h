@@ -24,6 +24,8 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
+#define NUMA_NODES 2
+
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
@@ -150,10 +152,16 @@ template <class T, class F>
   Compresses the first edge, writing target-source and a sign bit. 
 */
 long compressFirstEdge(uchar *start, long offset, uintE source, uintE target) {
+
+  cout << "compressFirstEdge - Source Vertex = " << source << " - Offset = " << offset << " - Target = " << target << endl;
+
   uchar* saveStart = start;
   long saveOffset = offset;
 
   intE preCompress = (intE) target - source;
+
+  cout << "Pre-compress - Difference = " << preCompress << endl;
+
   int bytesUsed = 0;
   uchar firstByte = 0;
   intE toCompress = abs(preCompress);
@@ -217,8 +225,17 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
     The new offset into the edge array
 */
 long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
-                                uintE vertexNum, uintE *savedEdges) {
+                                uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node) {
+    
+  cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
+
   if (degree > 0) {
+    // Added Mohamed 
+    // Define last NUMA node used
+    int last_numa_node = -1;
+
+
+
     // Compress the first edge whole, which is signed difference coded
     currentOffset = compressFirstEdge(edgeArray, currentOffset, 
                                        vertexNum, savedEdges[0]);
@@ -226,6 +243,9 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
       // Store difference between cur and prev edge. 
       uintE difference = savedEdges[edgeI] - 
                         savedEdges[edgeI - 1];
+    
+      cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
+
       currentOffset = compressEdge(edgeArray, currentOffset, difference);
     }
     // Increment nWritten after all of vertex n's neighbors are written
@@ -251,12 +271,18 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   long toAlloc = sequence::plusScan(charsUsedArr,charsUsedArr,n);
   uintE* iEdges = newA(uintE,toAlloc);
 
+  // Added Mohamed
+  // Calculate the number of vertices per NUMA node
+  int vertex_per_numa_node = n / NUMA_NODES;
+  cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
+
   {parallel_for(long i=0; i<n; i++) {
+      cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges+charsUsedArr[i];
       long charsUsed = 
 	sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 
 				  0, degrees[i+1]-degrees[i],
-				  i, edges + offsets[i]);
+				  i, edges + offsets[i], vertex_per_numa_node);
       charsUsedArr[i] = charsUsed;
   }}
 
