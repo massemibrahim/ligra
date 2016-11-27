@@ -24,7 +24,7 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
-#define NUMA_NODES 2
+#define NUMA_NODES 3
 
 #include <iostream>
 #include <fstream>
