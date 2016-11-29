@@ -153,14 +153,14 @@ template <class T, class F>
 */
 long compressFirstEdge(uchar *start, long offset, uintE source, uintE target) {
 
-  cout << "compressFirstEdge - Source Vertex = " << source << " - Offset = " << offset << " - Target = " << target << endl;
+  //cout << "compressFirstEdge - Source Vertex = " << source << " - Offset = " << offset << " - Target = " << target << endl;
 
   uchar* saveStart = start;
   long saveOffset = offset;
 
   intE preCompress = (intE) target - source;
 
-  cout << "Pre-compress - Difference = " << preCompress << endl;
+  //cout << "Pre-compress - Difference = " << preCompress << endl;
 
   int bytesUsed = 0;
   uchar firstByte = 0;
@@ -227,7 +227,7 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
 long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
                                 uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node) {
     
-  cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
+  //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
 
   if (degree > 0) {
     // Added Mohamed 
@@ -246,15 +246,15 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
 
       // Added by Mohamed
       current_numa_node = savedEdges[edgeI] / vertex_per_numa_node;
-      cout << "Current NUMA Node = " << current_numa_node << endl;
-      cout << "Previous NUMA Node = " << last_numa_node << endl;
+      //cout << "Current NUMA Node = " << current_numa_node << endl;
+      //cout << "Previous NUMA Node = " << last_numa_node << endl;
 
       if (current_numa_node == last_numa_node)
       {
         // Store difference between cur and prev edge. 
         uintE difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
     
-        cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << ") - Difference = " << difference << endl;
+        //cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << ") - Difference = " << difference << endl;
 
         currentOffset = compressEdge(edgeArray, currentOffset, difference);
       }
@@ -272,7 +272,7 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
       // uintE difference = savedEdges[edgeI] - 
       //                   savedEdges[edgeI - 1];
     
-      // cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
+      // //cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
 
       // currentOffset = compressEdge(edgeArray, currentOffset, difference);
     }
@@ -285,7 +285,7 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
   Compresses the edge set in parallel. 
 */
 uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE* Degrees) {
-  cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
+  //cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
   uintE **edgePts = newA(uintE*, n);
   uintT *degrees = newA(uintT, n+1);
   long *charsUsedArr = newA(long, n);
@@ -302,10 +302,10 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   // Added Mohamed
   // Calculate the number of vertices per NUMA node
   int vertex_per_numa_node = n / NUMA_NODES;
-  cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
+  //cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
 
   {parallel_for(long i=0; i<n; i++) {
-      cout << "Compress edges of vertex " << i << endl;
+      //cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges+charsUsedArr[i];
       long charsUsed = 
   sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 
