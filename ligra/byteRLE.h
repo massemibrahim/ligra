@@ -24,7 +24,7 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
-typedef unsigned char uchar;
+#define NUMA_NODES 2
 
 #include <iostream>
 #include <fstream>
@@ -38,64 +38,63 @@ typedef unsigned char uchar;
 #define LAST_BIT_SET(b) (b & (0x80))
 #define EDGE_SIZE_PER_BYTE 7
 
+typedef unsigned char uchar;
+
 /* Reads the first edge of an out-edge list, which is the signed
    difference between the target and source. 
 */
 
-inline intE eatWeight(uchar * & start) {
-  uchar fb = * start++;
+inline intE eatWeight(uchar* &start) {
+  uchar fb = *start++;
   intE edgeRead = (fb & 0x3f);
   if (LAST_BIT_SET(fb)) {
     int shiftAmount = 6;
     while (1) {
-      uchar b = * start;
+      uchar b = *start;
       edgeRead |= ((b & 0x7f) << shiftAmount);
       start++;
       if (LAST_BIT_SET(b))
         shiftAmount += EDGE_SIZE_PER_BYTE;
-      else
+      else 
         break;
     }
   }
   return (fb & 0x40) ? -edgeRead : edgeRead;
 }
 
-inline intE eatFirstEdge(uchar * & start, uintE source) {
-  uchar fb = * start++;
-  //int sign = (fb & 0x40) ? -1 : 1;
+inline intE eatFirstEdge(uchar* &start, uintE source) {
+  uchar fb = *start++;
   intE edgeRead = (fb & 0x3f);
   if (LAST_BIT_SET(fb)) {
     int shiftAmount = 6;
-    //shiftAmount += 6;
     while (1) {
-      uchar b = * start;
+      uchar b = *start;
       edgeRead |= ((b & 0x7f) << shiftAmount);
       start++;
       if (LAST_BIT_SET(b))
         shiftAmount += EDGE_SIZE_PER_BYTE;
-      else
+      else 
         break;
     }
   }
-  //edgeRead *= sign;
   return (fb & 0x40) ? source - edgeRead : source + edgeRead;
 }
 
 /*
   Reads any edge of an out-edge list after the first edge. 
 */
-inline uintE eatEdge(uchar * & start) {
+inline uintE eatEdge(uchar* &start) {
   uintE edgeRead = 0;
   int shiftAmount = 0;
 
   while (1) {
-    uchar b = * start++;
+    uchar b = *start++;
     edgeRead += ((b & 0x7f) << shiftAmount);
     if (LAST_BIT_SET(b))
       shiftAmount += EDGE_SIZE_PER_BYTE;
-    else
+    else 
       break;
-  }
+  } 
   return edgeRead;
 }
 
@@ -104,81 +103,64 @@ inline uintE eatEdge(uchar * & start) {
   edge, and then eats the remaining |d-1| many edges that are normally
   coded. 
 */
-template < class T, class F >
-  inline void decode(T t, F & f, uchar * edgeStart,
-    const uintE & source,
-      const uintT & degree) {
-    uintE edgesRead = 0;
-    if (degree > 0) {
-      // Eat first edge, which is compressed specially 
-      uintE startEdge = eatFirstEdge(edgeStart, source);
-      if (!t.srcTarg(f, source, startEdge, edgesRead)) {
-        return;
-      }
-      uintT i = 0;
-      edgesRead = 1;
-      while (1) {
-        if (edgesRead == degree) return;
-        uchar header = edgeStart[i++];
-        uint numbytes = 1 + (header & 0x3);
-        uint runlength = 1 + (header >> 2);
-        switch (numbytes) {
-        case 1:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i++] + startEdge;
-            startEdge = edge;
-            if (!t.srcTarg(f, source, edge, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 2:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + startEdge;
-            i += 2;
-            startEdge = edge;
-            if (!t.srcTarg(f, source, edge, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 3:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + startEdge;
-            i += 3;
-            startEdge = edge;
-            if (!t.srcTarg(f, source, edge, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        default:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + (((uintE) edgeStart[i + 3]) << 24) + startEdge;
-            i += 4;
-            startEdge = edge;
-            if (!t.srcTarg(f, source, edge, edgesRead++)) {
-              return;
-            }
-          }
-        }
+template <class T, class F>
+  inline void decode(T t, F &f, uchar* edgeStart, const uintE &source, const uintT &degree) {
+  uintE edgesRead = 0;
+  if (degree > 0) {
+    // Eat first edge, which is compressed specially 
+    uintE startEdge = eatFirstEdge(edgeStart,source);
+    if (!t.srcTarg(f, source,startEdge,edgesRead)) {
+      return;
+    }
+    for (edgesRead = 1; edgesRead < degree; edgesRead++) {
+      // Eat the next 'edge', which is a difference, and reconstruct edge.
+      uintE edgeRead = eatEdge(edgeStart);
+      uintE edge = startEdge + edgeRead;
+      startEdge = edge;
+      if (!t.srcTarg(f, source, edge, edgesRead)) {
+        break; 
       }
     }
   }
+}
+
+//decode edges for weighted graph
+template <class T, class F>
+  inline void decodeWgh(T t, F &f, uchar* edgeStart, const uintE &source, const uintT &degree) {
+  uintT edgesRead = 0;
+  if (degree > 0) {
+    // Eat first edge, which is compressed specially 
+    uintE startEdge = eatFirstEdge(edgeStart,source);
+    intE weight = eatWeight(edgeStart);
+    if (!t.srcTarg(f, source,startEdge, weight, edgesRead)) {
+      return;
+    }
+    for (edgesRead = 1; edgesRead < degree; edgesRead++) {
+      uintE edgeRead = eatEdge(edgeStart);
+      uintE edge = startEdge + edgeRead;
+      startEdge = edge;
+      intE weight = eatWeight(edgeStart);
+      if (!t.srcTarg(f, source, edge, weight, edgesRead)) {
+        break; 
+      }
+    }
+  }
+}
+
 
 /*
   Compresses the first edge, writing target-source and a sign bit. 
 */
-long compressFirstEdge(uchar * start, long offset, uintE source, uintE target) {
+long compressFirstEdge(uchar *start, long offset, uintE source, uintE target) {
 
-  cout << "compressFirstEdge - Source Vertex = " << source << " - Offset = " << offset << " - Target = " << target << endl;
+  //cout << "compressFirstEdge - Source Vertex = " << source << " - Offset = " << offset << " - Target = " << target << endl;
 
-  uchar * saveStart = start;
+  uchar* saveStart = start;
   long saveOffset = offset;
 
   intE preCompress = (intE) target - source;
 
-  cout << "Pre-compress - Difference = " << preCompress << endl;
+  //cout << "Pre-compress - Difference = " << preCompress << endl;
 
   int bytesUsed = 0;
   uchar firstByte = 0;
@@ -202,7 +184,7 @@ long compressFirstEdge(uchar * start, long offset, uintE source, uintE target) {
     // Check to see if there's any bits left to represent
     curByte = toCompress & 0x7f;
     if (toCompress > 0) {
-      toWrite |= 0x80;
+      toWrite |= 0x80; 
     }
     start[offset] = toWrite;
     offset++;
@@ -214,34 +196,23 @@ long compressFirstEdge(uchar * start, long offset, uintE source, uintE target) {
   Should provide the difference between this edge and the previous edge
 */
 
-long compressEdges(uchar * start, long curOffset, uintE * savedEdges, uintE edgeI, int numBytes, uintT runlength) {
-  //header
-  uchar header = numBytes - 1;
-  header |= ((runlength - 1) << 2);
-  start[curOffset++] = header;
-
-  for (int i = 0; i < runlength; i++) {
-    uintE e = savedEdges[edgeI + i] - savedEdges[edgeI + i - 1];
-    int bytesUsed = 0;
-    for (int j = 0; j < numBytes; j++) {
-      uchar curByte = e & 0xff;
-      e = e >> 8;
-      start[curOffset++] = curByte;
-      bytesUsed++;
+long compressEdge(uchar *start, long curOffset, uintE e) {
+  uchar curByte = e & 0x7f;
+  int bytesUsed = 0;
+  while ((curByte > 0) || (e > 0)) {
+    bytesUsed++;
+    uchar toWrite = curByte;
+    e = e >> 7;
+    // Check to see if there's any bits left to represent
+    curByte = e & 0x7f;
+    if (e > 0) {
+      toWrite |= 0x80; 
     }
+    start[curOffset] = toWrite;
+    curOffset++;
   }
   return curOffset;
 }
-
-#define ONE_BYTE 256
-#define TWO_BYTES 65536
-#define THREE_BYTES 16777216
-#define ONE_BYTE_SIGNED_MAX 128
-#define ONE_BYTE_SIGNED_MIN - 127
-#define TWO_BYTES_SIGNED_MAX 32768
-#define TWO_BYTES_SIGNED_MIN - 32767
-#define THREE_BYTES_SIGNED_MAX 8388608
-#define THREE_BYTES_SIGNED_MIN - 8388607
 
 /*
   Takes: 
@@ -253,83 +224,31 @@ long compressEdges(uchar * start, long curOffset, uintE * savedEdges, uintE edge
   Returns:
     The new offset into the edge array
 */
-long sequentialCompressEdgeSet(uchar * edgeArray, long currentOffset, uintT degree, uintE vertexNum, uintE * savedEdges) {
-
-  cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
+long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
+                                uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node) {
+    
+  //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
 
   if (degree > 0) {
-    cout << "Compress first edge for vertex " << vertexNum << endl;
+    // Added Mohamed 
+    // Define last NUMA node used
+    int last_numa_node = -1;
+
+
+
     // Compress the first edge whole, which is signed difference coded
-    currentOffset = compressFirstEdge(edgeArray, currentOffset,
-      vertexNum, savedEdges[0]);
-    if (degree == 1) return currentOffset;
-    uintE edgeI = 1;
-    uintT runlength = 0;
-    int numBytes = 0;
-    while (1) {
-      uintE difference = savedEdges[edgeI + runlength] -
-        savedEdges[edgeI + runlength - 1];
+    currentOffset = compressFirstEdge(edgeArray, currentOffset, 
+                                       vertexNum, savedEdges[0]);
+    for (uintT edgeI=1; edgeI < degree; edgeI++) {
+      // Store difference between cur and prev edge. 
+      uintE difference = savedEdges[edgeI] - 
+                        savedEdges[edgeI - 1];
+    
+      //cout << "sequentialCompressEdgeSet - Edge # " << edgeI << " - Difference = " << difference << endl;
 
-        cout << "sequentialCompressEdgeSet - Edge # " << edgeI + runlength << " - Difference = " << difference << endl;
-
-      if (difference < ONE_BYTE) {
-        if (!numBytes) {
-          numBytes = 1;
-          runlength++;
-        } else if (numBytes == 1) runlength++;
-        else {
-          //encode
-          currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < TWO_BYTES) {
-        if (!numBytes) {
-          numBytes = 2;
-          runlength++;
-        } else if (numBytes == 2) runlength++;
-        else {
-          //encode
-          currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < THREE_BYTES) {
-        if (!numBytes) {
-          numBytes = 3;
-          runlength++;
-        } else if (numBytes == 3) runlength++;
-        else {
-          //encode
-          currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else {
-        if (!numBytes) {
-          numBytes = 4;
-          runlength++;
-        } else if (numBytes == 4) runlength++;
-        else {
-          //encode
-          currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      }
-
-      if (runlength == 64) {
-        currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-        edgeI += runlength;
-        runlength = numBytes = 0;
-      }
-
-      if (runlength + edgeI == degree) {
-        currentOffset = compressEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, runlength);
-        break;
-      }
-
+      currentOffset = compressEdge(edgeArray, currentOffset, difference);
     }
+    // Increment nWritten after all of vertex n's neighbors are written
   }
   return currentOffset;
 }
@@ -337,62 +256,62 @@ long sequentialCompressEdgeSet(uchar * edgeArray, long currentOffset, uintT degr
 /*
   Compresses the edge set in parallel. 
 */
-uintE * parallelCompressEdges(uintE * edges, uintT * offsets, long n, long m, uintE * Degrees) {
+uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE* Degrees) {
   cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
-  uintE * * edgePts = newA(uintE * , n);
-  uintT * degrees = newA(uintT, n + 1);
-  long * charsUsedArr = newA(long, n);
-  long * compressionStarts = newA(long, n + 1); {
-    parallel_for(long i = 0; i < n; i++) {
+  uintE **edgePts = newA(uintE*, n);
+  uintT *degrees = newA(uintT, n+1);
+  long *charsUsedArr = newA(long, n);
+  long *compressionStarts = newA(long, n+1);
+  {parallel_for(long i=0; i<n; i++) { 
       degrees[i] = Degrees[i];
-      charsUsedArr[i] = 2 * (ceil((degrees[i] * 9) / 8) + 4);
-    }
-  }
+    charsUsedArr[i] = ceil((degrees[i] * 9) / 8) + 4;
+  }}
   degrees[n] = 0;
-  sequence::plusScan(degrees, degrees, n + 1);
-  long toAlloc = sequence::plusScan(charsUsedArr, charsUsedArr, n);
-  uintE * iEdges = newA(uintE, toAlloc);
+  sequence::plusScan(degrees,degrees, n+1);
+  long toAlloc = sequence::plusScan(charsUsedArr,charsUsedArr,n);
+  uintE* iEdges = newA(uintE,toAlloc);
 
-  {
-    parallel_for(long i = 0; i < n; i++) {
-      cout << "Compress edges of vertex " << i << endl;
-      edgePts[i] = iEdges + charsUsedArr[i];
-      long charsUsed =
-        sequentialCompressEdgeSet((uchar * )(iEdges + charsUsedArr[i]),
-          0, degrees[i + 1] - degrees[i],
-          i, edges + offsets[i]);
+  // Added Mohamed
+  // Calculate the number of vertices per NUMA node
+  int vertex_per_numa_node = n / NUMA_NODES;
+  //cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
+
+  {parallel_for(long i=0; i<n; i++) {
+      //cout << "Compress edges of vertex " << i << endl;
+      edgePts[i] = iEdges+charsUsedArr[i];
+      long charsUsed = 
+  sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 
+          0, degrees[i+1]-degrees[i],
+          i, edges + offsets[i], vertex_per_numa_node);
       charsUsedArr[i] = charsUsed;
-    }
-  }
+  }}
 
   // produce the total space needed for all compressed lists in chars. 
   long totalSpace = sequence::plusScan(charsUsedArr, compressionStarts, n);
   compressionStarts[n] = totalSpace;
   free(degrees);
   free(charsUsedArr);
-
-  uchar * finalArr = newA(uchar, totalSpace);
+  
+  uchar *finalArr = newA(uchar, totalSpace);
   cout << "total space requested is : " << totalSpace << endl;
-  float avgBitsPerEdge = (float) totalSpace * 8 / (float) m;
+  float avgBitsPerEdge = (float)totalSpace*8 / (float)m; 
   cout << "Average bits per edge: " << avgBitsPerEdge << endl;
 
-  {
-    parallel_for(long i = 0; i < n; i++) {
+  {parallel_for(long i=0; i<n; i++) {
       long o = compressionStarts[i];
-      memcpy(finalArr + o, (uchar * )(edgePts[i]), compressionStarts[i + 1] - o);
-      offsets[i] = o;
-    }
-  }
+    memcpy(finalArr + o, (uchar *)(edgePts[i]), compressionStarts[i+1]-o);
+    offsets[i] = o;
+  }}
   offsets[n] = totalSpace;
   free(iEdges);
   free(edgePts);
   free(compressionStarts);
   cout << "finished compressing, bytes used = " << totalSpace << endl;
   cout << "would have been, " << (m * 4) << endl;
-  return ((uintE * ) finalArr);
+  return ((uintE *)finalArr);
 }
 
-typedef pair < uintE, intE > intEPair;
+typedef pair<uintE,intE> intEPair;
 
 /*
   Takes: 
@@ -404,348 +323,76 @@ typedef pair < uintE, intE > intEPair;
   Returns:
     The new offset into the edge array
 */
-
-/*
-  Compresses the first edge, writing target-source and a sign bit. 
-*/
-
-int numBytesSigned(intE x) {
-  if (x < ONE_BYTE_SIGNED_MAX && x > ONE_BYTE_SIGNED_MIN) return 1;
-  else return 4;
-}
-
-template < class T, class F >
-  inline void decodeWgh(T t, F & f, uchar * edgeStart,
-    const uintE & source,
-      const uintT & degree) {
-    uintE edgesRead = 0;
-    if (degree > 0) {
-      // Eat first edge, which is compressed specially 
-      uintE startEdge = eatFirstEdge(edgeStart, source);
-      intE weight = eatWeight(edgeStart);
-      if (!t.srcTarg(f, source, startEdge, weight, edgesRead)) {
-        return;
-      }
-
-      uintT i = 0;
-      edgesRead = 1;
-      while (1) {
-        if (edgesRead == degree) return;
-        uchar header = edgeStart[i++];
-        uint info = header & 0x7; //3 bits for info
-        uint runlength = 1 + (header >> 3);
-        switch (info) {
-        case 0:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 1]; //highest bit is sign bit
-            intE weight = (w & 0x80) ? -(w & 0x7f) : (w & 0x7f);
-            i += 2;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 1:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 2]; //highest bit is sign bit
-            intE weight = (w & 0x80) ? -(w & 0x7f) : (w & 0x7f);
-            i += 3;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 2:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 3]; //highest bit is sign bit
-            intE weight = (w & 0x80) ? -(w & 0x7f) : (w & 0x7f);
-            i += 4;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 3:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + (((uintE) edgeStart[i + 3]) << 24) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 4]; //highest bit is sign bit
-            intE weight = (w & 0x80) ? -(w & 0x7f) : (w & 0x7f);
-            i += 5;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 4:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 1]; //highest bit is sign bit
-            intE weight = (w & 0x7f) + (((uintE) edgeStart[i + 2]) << 7) + (((uintE) edgeStart[i + 3]) << 15) + (((uintE) edgeStart[i + 4]) << 23);
-            if (w & 0x80) weight = -weight;
-            i += 5;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 5:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 2]; //highest bit is sign bit
-            intE weight = (w & 0x7f) + (((uintE) edgeStart[i + 3]) << 7) + (((uintE) edgeStart[i + 4]) << 15) + (((uintE) edgeStart[i + 5]) << 23);
-            if (w & 0x80) weight = -weight;
-            i += 6;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-          break;
-        case 6:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 3]; //highest bit is sign bit
-            intE weight = (w & 0x7f) + (((uintE) edgeStart[i + 4]) << 7) + (((uintE) edgeStart[i + 5]) << 15) + (((uintE) edgeStart[i + 6]) << 23);
-            if (w & 0x80) weight = -weight;
-            i += 7;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-        default:
-          for (uint j = 0; j < runlength; j++) {
-            uintE edge = (uintE) edgeStart[i] + (((uintE) edgeStart[i + 1]) << 8) + (((uintE) edgeStart[i + 2]) << 16) + (((uintE) edgeStart[i + 3]) << 24) + startEdge;
-            startEdge = edge;
-            uintE w = edgeStart[i + 4]; //highest bit is sign bit
-            intE weight = (w & 0x7f) + (((uintE) edgeStart[i + 5]) << 7) + (((uintE) edgeStart[i + 6]) << 15) + (((uintE) edgeStart[i + 7]) << 23);
-            if (w & 0x80) weight = -weight;
-            i += 8;
-            if (!t.srcTarg(f, source, edge, weight, edgesRead++)) {
-              return;
-            }
-          }
-        }
-      }
-    }
-  }
-
-long compressWeightedEdges(uchar * start, long curOffset, intEPair * savedEdges, uintE edgeI, int numBytes, int numBytesWeight, uintT runlength) {
-  //header
-  //use 3 bits for info on bytes needed 
-  uchar header = numBytes - 1;
-  if (numBytesWeight == 4) header |= 4;
-  header |= ((runlength - 1) << 3); //use 5 bits for run length
-  start[curOffset++] = header;
-  int bytesUsed = 0;
-
-  for (int i = 0; i < runlength; i++) {
-    uintE e = savedEdges[edgeI + i].first - savedEdges[edgeI + i - 1].first;
-    for (int j = 0; j < numBytes; j++) {
-      uchar curByte = e & 0xff;
-      e = e >> 8;
-      start[curOffset++] = curByte;
-      bytesUsed++;
-    }
-    intE w = savedEdges[edgeI + i].second;
-    uintE wMag = abs(w);
-    uchar curByte = wMag & 0x7f;
-
-    wMag = wMag >> 7;
-    if (w < 0) start[curOffset++] = curByte | 0x80;
-    else start[curOffset++] = curByte;
-    bytesUsed++;
-    for (int j = 1; j < numBytesWeight; j++) {
-      curByte = wMag & 0xff;
-      wMag = wMag >> 8;
-      start[curOffset++] = curByte;
-      bytesUsed++;
-    }
-  }
-  return curOffset;
-}
-
-long sequentialCompressWeightedEdgeSet(uchar * edgeArray, long currentOffset, uintT degree, uintE vertexNum, intEPair * savedEdges) {
+long sequentialCompressWeightedEdgeSet
+(uchar *edgeArray, long currentOffset, uintT degree, 
+ uintE vertexNum, intEPair *savedEdges) {
   if (degree > 0) {
-    currentOffset = compressFirstEdge(edgeArray, currentOffset,
-      vertexNum, savedEdges[0].first);
+    // Compress the first edge whole, which is signed difference coded
+    //target ID
+    currentOffset = compressFirstEdge(edgeArray, currentOffset, 
+                                       vertexNum, savedEdges[0].first);
+    //weight
+    currentOffset = compressFirstEdge(edgeArray, currentOffset, 
+              0,savedEdges[0].second);
 
-    currentOffset = compressFirstEdge(edgeArray, currentOffset,
-      0, savedEdges[0].second);
-    if (degree == 1) return currentOffset;
+    for (uintT edgeI=1; edgeI < degree; edgeI++) {
+      // Store difference between cur and prev edge. 
+      uintE difference = savedEdges[edgeI].first - 
+                        savedEdges[edgeI - 1].first;
 
-    uintE edgeI = 1;
-    uintT runlength = 0;
-    int numBytes = 0, numBytesWeight = 0;
-    while (1) {
-      uintE difference = savedEdges[edgeI + runlength].first -
-        savedEdges[edgeI + runlength - 1].first;
-      intE weight = savedEdges[edgeI + runlength].second;
-      if (difference < ONE_BYTE && numBytesSigned(weight) == 1) {
-        if (!numBytes) {
-          numBytes = 1;
-          numBytesWeight = 1;
-          runlength++;
-        } else if (numBytes == 1 && numBytesWeight == 1) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < ONE_BYTE && numBytesSigned(weight) == 4) {
-        if (!numBytes) {
-          numBytes = 1;
-          numBytesWeight = 4;
-          runlength++;
-        } else if (numBytes == 1 && numBytesWeight == 4) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < TWO_BYTES && numBytesSigned(weight) == 1) {
-        if (!numBytes) {
-          numBytes = 2;
-          numBytesWeight = 1;
-          runlength++;
-        } else if (numBytes == 2 && numBytesWeight == 1) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < TWO_BYTES && numBytesSigned(weight) == 4) {
-        if (!numBytes) {
-          numBytes = 2;
-          numBytesWeight = 4;
-          runlength++;
-        } else if (numBytes == 2 && numBytesWeight == 4) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < THREE_BYTES && numBytesSigned(weight) == 1) {
-        if (!numBytes) {
-          numBytes = 3;
-          numBytesWeight = 1;
-          runlength++;
-        } else if (numBytes == 3 && numBytesWeight == 1) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (difference < THREE_BYTES && numBytesSigned(weight) == 4) {
-        if (!numBytes) {
-          numBytes = 3;
-          numBytesWeight = 4;
-          runlength++;
-        } else if (numBytes == 3 && numBytesWeight == 4) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else if (numBytesSigned(weight) == 1) {
-        if (!numBytes) {
-          numBytes = 4;
-          numBytesWeight = 1;
-          runlength++;
-        } else if (numBytes == 4 && numBytesWeight == 1) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      } else {
-        if (!numBytes) {
-          numBytes = 4;
-          numBytesWeight = 4;
-          runlength++;
-        } else if (numBytes == 4 && numBytesWeight == 4) runlength++;
-        else {
-          //encode
-          currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-          edgeI += runlength;
-          runlength = numBytes = 0;
-        }
-      }
+      //compress difference
+      currentOffset = compressEdge(edgeArray, currentOffset, difference);
 
-      if (runlength == 32) {
-        currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-        edgeI += runlength;
-        runlength = numBytes = 0;
-      }
-      if (runlength + edgeI == degree) {
-        currentOffset = compressWeightedEdges(edgeArray, currentOffset, savedEdges, edgeI, numBytes, numBytesWeight, runlength);
-        break;
-      }
+      //compress weight
+      currentOffset = compressFirstEdge(edgeArray, currentOffset, 0, savedEdges[edgeI].second);      
     }
+    // Increment nWritten after all of vertex n's neighbors are written
   }
   return currentOffset;
 }
 
-uchar * parallelCompressWeightedEdges(intEPair * edges, uintT * offsets, long n, long m, uintE * Degrees) {
+/*
+  Compresses the weighted edge set in parallel. 
+*/
+uchar *parallelCompressWeightedEdges(intEPair *edges, uintT *offsets, long n, long m, uintE* Degrees) {
   cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
-  uintE * * edgePts = newA(uintE * , n);
-  uintT * degrees = newA(uintT, n + 1);
-  long * charsUsedArr = newA(long, n);
-  long * compressionStarts = newA(long, n + 1); {
-    parallel_for(long i = 0; i < n; i++) {
-      degrees[i] = Degrees[i];
-      charsUsedArr[i] = 4 * (ceil((degrees[i] * 9) / 8) + 4); //to change
-    }
-  }
+  uintE **edgePts = newA(uintE*, n);
+  uintT *degrees = newA(uintT, n+1);
+  long *charsUsedArr = newA(long, n);
+  long *compressionStarts = newA(long, n+1);
+  {parallel_for(long i=0; i<n; i++) { 
+    degrees[i] = Degrees[i];
+    charsUsedArr[i] = 2*(ceil((degrees[i] * 9) / 8) + 4); //to change
+  }}
   degrees[n] = 0;
-  sequence::plusScan(degrees, degrees, n + 1);
-  long toAlloc = sequence::plusScan(charsUsedArr, charsUsedArr, n);
-  uintE * iEdges = newA(uintE, toAlloc);
+  sequence::plusScan(degrees,degrees, n+1);
+  long toAlloc = sequence::plusScan(charsUsedArr,charsUsedArr,n);
+  uintE* iEdges = newA(uintE,toAlloc);
 
-  {
-    parallel_for(long i = 0; i < n; i++) {
-      edgePts[i] = iEdges + charsUsedArr[i];
-      long charsUsed =
-        sequentialCompressWeightedEdgeSet((uchar * )(iEdges + charsUsedArr[i]), 0, degrees[i + 1] - degrees[i], i, edges + offsets[i]);
-      charsUsedArr[i] = charsUsed;
-    }
-  }
+  {parallel_for(long i=0; i<n; i++) {
+    edgePts[i] = iEdges+charsUsedArr[i];
+    long charsUsed = 
+      sequentialCompressWeightedEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 0, degrees[i+1]-degrees[i],i, edges + offsets[i]);
+    charsUsedArr[i] = charsUsed;
+  }}
 
-  // produce the total space needed for all compressed lists in chars.
+  // produce the total space needed for all compressed lists in chars. 
   long totalSpace = sequence::plusScan(charsUsedArr, compressionStarts, n);
   compressionStarts[n] = totalSpace;
   free(degrees);
   free(charsUsedArr);
 
-  uchar * finalArr = newA(uchar, totalSpace);
+  uchar *finalArr = newA(uchar, totalSpace);
   cout << "total space requested is : " << totalSpace << endl;
-  float avgBitsPerEdge = (float) totalSpace * 8 / (float) m;
+  float avgBitsPerEdge = (float)totalSpace*8 / (float)m; 
   cout << "Average bits per edge: " << avgBitsPerEdge << endl;
 
-  {
-    parallel_for(long i = 0; i < n; i++) {
+  {parallel_for(long i=0; i<n; i++) {
       long o = compressionStarts[i];
-      memcpy(finalArr + o, (uchar * )(edgePts[i]), compressionStarts[i + 1] - o);
-      offsets[i] = o;
-    }
-  }
+    memcpy(finalArr + o, (uchar *)(edgePts[i]), compressionStarts[i+1]-o);
+    offsets[i] = o;
+  }}
   offsets[n] = totalSpace;
-
   free(iEdges);
   free(edgePts);
   free(compressionStarts);
