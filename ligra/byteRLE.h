@@ -355,7 +355,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     {parallel_for(long i=0; i<n; i++) {
       //cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges+charsUsedArr[i];
-      long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 0, 
+      long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), currentOffset, 
         degrees[i+1]-degrees[i], i, 
         edges + offsets[i], vertex_per_numa_node, 
         compress_flag, edge_first_compress_flag[index] + offsets[i]);
