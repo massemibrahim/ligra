@@ -222,7 +222,7 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
   Returns:
     The new offset into the edge array
 */
-long sequentialCompressEdgeSet(uchar *edgeArray, long &currentOffset, uintT degree, 
+long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
                                 uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node,
                                 bool compress_flag, bool *edge_first_compress_flag) {
     
@@ -360,7 +360,8 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
         degrees[i+1]-degrees[i], i, 
         edges + offsets[i], vertex_per_numa_node, 
         compress_flag, edge_first_compress_flag[index] + offsets[i]);
-      charsUsedArr[i] = charsUsed;
+      // charsUsedArr[i] = charsUsed;
+      charsUsedArr[i] += charsUsed;
     }}
   }
 
