@@ -24,8 +24,6 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
-#define NUMA_NODES 1
-
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
@@ -225,7 +223,8 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
     The new offset into the edge array
 */
 long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
-                                uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node) {
+                                uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node,
+                                bool compress_flag, bool *edge_first_compress_flag, int index) {
     
   //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
 
@@ -249,19 +248,37 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
       //cout << "Current NUMA Node = " << current_numa_node << endl;
       //cout << "Previous NUMA Node = " << last_numa_node << endl;
 
+      uintE difference = 0;
       if (current_numa_node == last_numa_node)
       {
-        // Store difference between cur and prev edge. 
-        uintE difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
+        // Set the edge first compress flag to false
+        edge_first_compress_flag[edgeI] = false;
+
+        // Store difference between current and previous edge.
+        difference = savedEdges[edgeI] - savedEdges[edgeI - 1];
     
         //cout << "sequentialCompressEdgeSet - Edge # " << edgeI << "(" <<savedEdges[edgeI] << ") - Difference = " << difference << endl;
 
-        currentOffset = compressEdge(edgeArray, currentOffset, difference);
+        // Check if compress flag is true
+        if (compress_flag == true)
+        {
+          currentOffset = compressEdge(edgeArray, currentOffset, difference);
+        }
       }
       else
       {
-        // Compress similar to the first edge whole, which is signed difference coded
-        currentOffset = compressFirstEdge(edgeArray, currentOffset, vertexNum, savedEdges[edgeI]); 
+        // Set the edge first compress flag to true
+        edge_first_compress_flag[edgeI] = true;
+
+        // Store difference between current edge and current vertex index 
+        difference = savedEdges[edgeI] - vertexNum;
+
+        // Check if compress flag is true
+        if (compress_flag == true)
+        {
+          // Compress similar to the first edge whole, which is signed difference coded
+          currentOffset = compressFirstEdge(edgeArray, currentOffset, vertexNum, savedEdges[edgeI]); 
+        }
       }
 
       // Set the last NUMA node to current
@@ -284,6 +301,7 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
 /*
   Compresses the edge set in parallel. 
 */
+// #define NUMA_NODES 1
 uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE* Degrees) {
   cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
   uintE **edgePts = newA(uintE*, n);
@@ -302,18 +320,82 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   // Added Mohamed
   //cout << "Number of NUMA Nodes = " << NUMA_NODES << endl;
   // Calculate the number of vertices per NUMA node
-  int vertex_per_numa_node = ceil(n * 1.0 / NUMA_NODES);
+  // int vertex_per_numa_node = ceil(n * 1.0 / NUMA_NODES);
   //cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
 
-  {parallel_for(long i=0; i<n; i++) {
+  int numa_nodes_configs[4] = {1, 2, 4, 8}; 
+  int vertex_per_numa_node = -1;
+  bool compress_flag = false;
+  bool **edge_first_compress_flag = new bool*[4];
+  int index = 0;
+  for (index = 0; index < 4; index++)
+  {
+      edge_first_compress_flag[index] = new bool[m];
+  }
+  bool *all_same_flag = new bool[m];
+  for (index = 0; index < 4; index++)
+  {
+    // Set the number of numa nodes
+    vertex_per_numa_node = numa_nodes_configs[index];
+
+    // Check if the current numa config. is to be compressed or not
+    if (vertex_per_numa_node == 1 || vertex_per_numa_node == 8)
+    {
+      compress_flag = true;
+    }
+    else
+    {
+      compress_flag = false;
+    }
+
+    {parallel_for(long i=0; i<n; i++) {
       //cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges+charsUsedArr[i];
-      long charsUsed = 
-  sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 
-          0, degrees[i+1]-degrees[i],
-          i, edges + offsets[i], vertex_per_numa_node);
+      long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 0, 
+        degrees[i+1]-degrees[i], i, 
+        edges + offsets[i], vertex_per_numa_node, 
+        compress_flag, edge_first_compress_flag[index] + offsets[i],
+        index);
       charsUsedArr[i] = charsUsed;
-  }}
+    }}
+  }
+
+  // Loop on the edge first flag arrays to set the all_same flag array
+  int flag_sum = 0;
+  for (index = 0; index < m; index++)
+  {
+    for (int k = 0; k < 4; k++)
+    {
+      flag_sum += edge_first_compress_flag[k][index]; 
+    }
+
+    // Check if flag sum is equal to zero or 4 (can check with 0 or 2 and skip using numa nodes = 2 & 4)
+    if (flag_sum == 0 || flag_sum || 4)
+    {
+      all_same[index] = true;
+    }
+    else
+    {
+      all_same[index] = false;
+    }
+  }
+
+  for (index = 0; index < 4; index++)
+  {
+    cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
+    for (int k = 0; k < m; k++)
+    {
+      cout << edge_first_compress_flag[index][k] << ", ";
+    }
+    cout << endl;
+  }
+
+  cout << "All same flags" << endl;
+  for (index = 0; index < m; index++)
+  {
+    cout << all_same[index] << ", ";
+  }
+  cout << endl;
 
   // produce the total space needed for all compressed lists in chars. 
   long totalSpace = sequence::plusScan(charsUsedArr, compressionStarts, n);
