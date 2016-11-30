@@ -301,7 +301,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
 
   // Added Mohamed
   // Calculate the number of vertices per NUMA node
-  int vertex_per_numa_node = n / NUMA_NODES;
+  int vertex_per_numa_node = ceil(n / NUMA_NODES * 1.0);
   cout << "Vertices/NUMA Node = " << vertex_per_numa_node << endl;
 
   {parallel_for(long i=0; i<n; i++) {
