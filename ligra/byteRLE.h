@@ -302,7 +302,8 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
   Compresses the edge set in parallel. 
 */
 // #define NUMA_NODES 1
-uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE* Degrees) {
+uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE* Degrees,
+  bool **edge_first_compress_flag, bool *all_same_flag) {
   cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
   uintE **edgePts = newA(uintE*, n);
   uintT *degrees = newA(uintT, n+1);
@@ -326,13 +327,13 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   int numa_nodes_configs[4] = {1, 2, 4, 8}; 
   int vertex_per_numa_node = -1;
   bool compress_flag = false;
-  bool **edge_first_compress_flag = new bool*[4];
-  int index = 0;
-  for (index = 0; index < 4; index++)
-  {
-      edge_first_compress_flag[index] = new bool[m];
-  }
-  bool *all_same_flag = new bool[m];
+  // bool **edge_first_compress_flag = new bool*[4];
+  // int index = 0;
+  // for (index = 0; index < 4; index++)
+  // {
+  //     edge_first_compress_flag[index] = new bool[m];
+  // }
+  // bool *all_same_flag = new bool[m];
   for (index = 0; index < 4; index++)
   {
     // Set the number of numa nodes
@@ -381,29 +382,29 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     flag_sum = 0;
   }
 
-  cout << "Edges" << endl;
-  for (index = 0; index < m; index++)
-  {
-    cout << edges[index] << ", ";
-  }
-  cout << endl;
+  // cout << "Edges" << endl;
+  // for (index = 0; index < m; index++)
+  // {
+  //   cout << edges[index] << ", ";
+  // }
+  // cout << endl;
 
-  for (index = 0; index < 4; index++)
-  {
-    cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
-    for (int k = 0; k < m; k++)
-    {
-      cout << edge_first_compress_flag[index][k] << ", ";
-    }
-    cout << endl;
-  }
+  // for (index = 0; index < 4; index++)
+  // {
+  //   cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
+  //   for (int k = 0; k < m; k++)
+  //   {
+  //     cout << edge_first_compress_flag[index][k] << ", ";
+  //   }
+  //   cout << endl;
+  // }
 
-  cout << "All same flags" << endl;
-  for (index = 0; index < m; index++)
-  {
-    cout << all_same_flag[index] << ", ";
-  }
-  cout << endl;
+  // cout << "All same flags" << endl;
+  // for (index = 0; index < m; index++)
+  // {
+  //   cout << all_same_flag[index] << ", ";
+  // }
+  // cout << endl;
 
   // produce the total space needed for all compressed lists in chars. 
   long totalSpace = sequence::plusScan(charsUsedArr, compressionStarts, n);
@@ -412,8 +413,10 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   free(charsUsedArr);
   
   uchar *finalArr = newA(uchar, totalSpace);
-  cout << "total space requested is : " << totalSpace << endl;
-  float avgBitsPerEdge = (float)totalSpace*8 / (float)m; 
+  // cout << "total space requested is : " << totalSpace << endl;
+  cout << "total space requested is : " << totalSpace + ((m * 5)/8) << endl;
+  // float avgBitsPerEdge = (float)totalSpace*8 / (float)m;
+  float avgBitsPerEdge = ((float)totalSpace*8 + (m*5))/ (float)m;  
   cout << "Average bits per edge: " << avgBitsPerEdge << endl;
 
   {parallel_for(long i=0; i<n; i++) {
@@ -425,7 +428,8 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   free(iEdges);
   free(edgePts);
   free(compressionStarts);
-  cout << "finished compressing, bytes used = " << totalSpace << endl;
+  // cout << "finished compressing, bytes used = " << totalSpace << endl;
+  cout << "finished compressing, bytes used = " << totalSpace + ((m * 5)/8) << endl;
   cout << "would have been, " << (m * 4) << endl;
   return ((uintE *)finalArr);
 }
