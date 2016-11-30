@@ -370,7 +370,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     }
 
     // Check if flag sum is equal to zero or 4 (can check with 0 or 2 and skip using numa nodes = 2 & 4)
-    if (flag_sum == 0 || flag_sum || 4)
+    if (flag_sum == 0 || flag_sum == 4)
     {
       all_same_flag[index] = true;
     }
