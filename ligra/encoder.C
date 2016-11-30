@@ -333,11 +333,11 @@ void encodeGraphFromFile(char * fname, bool isSymmetric, char * outFile, bool bi
     out.write((char * ) offsets, sizeof(uintT) * (n + 1)); //write offsets
     out.write((char * ) Degrees, sizeof(uintE) * n); //write degrees
     out.write((char * ) nEdges, totalSpace); //write edges
-    out.write((bool * ) all_same_flag, sizeof(bool) * m);
-    for (int index = 0; index < 4; index++)
-    {
-      out.write((bool * ) edge_first_compress_flag[index], sizeof(bool) * m);
-    }
+    // out.write((bool * ) all_same_flag, sizeof(bool) * m);
+    // for (int index = 0; index < 4; index++)
+    // {
+    //   out.write((bool * ) edge_first_compress_flag[index], sizeof(bool) * m);
+    // }
     out.close();
     free(sizes);
     free(offsets);
