@@ -380,6 +380,13 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     }
   }
 
+  cout << "Edges" << endl;
+  for (index = 0; index < m; index++)
+  {
+    cout << edges[index] << ", ";
+  }
+  cout << endl;
+
   for (index = 0; index < 4; index++)
   {
     cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
