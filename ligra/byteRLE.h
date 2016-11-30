@@ -328,7 +328,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   int vertex_per_numa_node = -1;
   bool compress_flag = false;
   // bool **edge_first_compress_flag = new bool*[4];
-  // int index = 0;
+  int index = 0;
   // for (index = 0; index < 4; index++)
   // {
   //     edge_first_compress_flag[index] = new bool[m];
