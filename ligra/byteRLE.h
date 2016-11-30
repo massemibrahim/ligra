@@ -340,7 +340,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     vertex_per_numa_node = ceil(n * 1.0 / numa_nodes_configs[index]);;
 
     // Check if the current numa config. is to be compressed or not
-    if (vertex_per_numa_node == 1 || vertex_per_numa_node == 8)
+    if (numa_nodes_configs[index] == 1 || numa_nodes_configs[index] == 8)
     {
       compress_flag = true;
     }
