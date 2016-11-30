@@ -416,10 +416,10 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   free(charsUsedArr);
   
   uchar *finalArr = newA(uchar, totalSpace);
-  cout << "total space requested is : " << totalSpace << endl;
-  // cout << "total space requested is : " << totalSpace + ((m * 5)/8) << endl;
-  float avgBitsPerEdge = (float)totalSpace*8 / (float)m;
-  // float avgBitsPerEdge = ((float)totalSpace*8 + (m*5))/ (float)m;  
+  // cout << "total space requested is : " << totalSpace << endl;
+  cout << "total space requested is : " << totalSpace + ((m * 5)/8) << endl;
+  // float avgBitsPerEdge = (float)totalSpace*8 / (float)m;
+  float avgBitsPerEdge = ((float)totalSpace*8 + (m*5))/ (float)m;  
   cout << "Average bits per edge: " << avgBitsPerEdge << endl;
 
   {parallel_for(long i=0; i<n; i++) {
@@ -431,8 +431,8 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   free(iEdges);
   free(edgePts);
   free(compressionStarts);
-  cout << "finished compressing, bytes used = " << totalSpace << endl;
-  // cout << "finished compressing, bytes used = " << totalSpace + ((m * 5)/8) << endl;
+  // cout << "finished compressing, bytes used = " << totalSpace << endl;
+  cout << "finished compressing, bytes used = " << totalSpace + ((m * 5)/8) << endl;
   cout << "would have been, " << (m * 4) << endl;
   return ((uintE *)finalArr);
 }
