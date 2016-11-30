@@ -224,7 +224,7 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
 */
 long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
                                 uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node,
-                                bool compress_flag, bool *edge_first_compress_flag, int index) {
+                                bool compress_flag, bool *edge_first_compress_flag) {
     
   //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
 
@@ -336,7 +336,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   for (index = 0; index < 4; index++)
   {
     // Set the number of numa nodes
-    vertex_per_numa_node = numa_nodes_configs[index];
+    vertex_per_numa_node = ceil(n * 1.0 / numa_nodes_configs[index]);;
 
     // Check if the current numa config. is to be compressed or not
     if (vertex_per_numa_node == 1 || vertex_per_numa_node == 8)
@@ -354,8 +354,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
       long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 0, 
         degrees[i+1]-degrees[i], i, 
         edges + offsets[i], vertex_per_numa_node, 
-        compress_flag, edge_first_compress_flag[index] + offsets[i],
-        index);
+        compress_flag, edge_first_compress_flag[index] + offsets[i]);
       charsUsedArr[i] = charsUsed;
     }}
   }
