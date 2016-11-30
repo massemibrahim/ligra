@@ -378,6 +378,8 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     {
       all_same_flag[index] = false;
     }
+
+    flag_sum = 0;
   }
 
   cout << "Edges" << endl;
