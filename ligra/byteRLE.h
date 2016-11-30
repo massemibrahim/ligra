@@ -222,7 +222,7 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
   Returns:
     The new offset into the edge array
 */
-long sequentialCompressEdgeSet(uchar *edgeArray, long &currentOffset, uintT degree, 
+long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
                                 uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node,
                                 bool compress_flag, bool *edge_first_compress_flag) {
     
@@ -385,29 +385,29 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     flag_sum = 0;
   }
 
-  cout << "Edges" << endl;
-  for (index = 0; index < m; index++)
-  {
-    cout << edges[index] << ", ";
-  }
-  cout << endl;
+  // cout << "Edges" << endl;
+  // for (index = 0; index < m; index++)
+  // {
+  //   cout << edges[index] << ", ";
+  // }
+  // cout << endl;
 
-  for (index = 0; index < 4; index++)
-  {
-    cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
-    for (int k = 0; k < m; k++)
-    {
-      cout << edge_first_compress_flag[index][k] << ", ";
-    }
-    cout << endl;
-  }
+  // for (index = 0; index < 4; index++)
+  // {
+  //   cout << "Edge flags for NUMA nodes = " << numa_nodes_configs[index] << endl;
+  //   for (int k = 0; k < m; k++)
+  //   {
+  //     cout << edge_first_compress_flag[index][k] << ", ";
+  //   }
+  //   cout << endl;
+  // }
 
-  cout << "All same flags" << endl;
-  for (index = 0; index < m; index++)
-  {
-    cout << all_same_flag[index] << ", ";
-  }
-  cout << endl;
+  // cout << "All same flags" << endl;
+  // for (index = 0; index < m; index++)
+  // {
+  //   cout << all_same_flag[index] << ", ";
+  // }
+  // cout << endl;
 
   // produce the total space needed for all compressed lists in chars. 
   long totalSpace = sequence::plusScan(charsUsedArr, compressionStarts, n);
