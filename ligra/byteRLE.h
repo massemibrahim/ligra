@@ -222,12 +222,12 @@ long compressEdge(uchar *start, long curOffset, uintE e) {
   Returns:
     The new offset into the edge array
 */
-long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degree, 
+long sequentialCompressEdgeSet(uchar *edgeArray, long &currentOffset, uintT degree, 
                                 uintE vertexNum, uintE *savedEdges, int vertex_per_numa_node,
                                 bool compress_flag, bool *edge_first_compress_flag) {
     
   //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
-  cout << "Compress Flag = " << compress_flag << endl;
+  // cout << "Compress Flag = " << compress_flag << endl;
   if (degree > 0) {
     // Added Mohamed 
     // Define last NUMA node used
@@ -334,9 +334,10 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   //     edge_first_compress_flag[index] = new bool[m];
   // }
   // bool *all_same_flag = new bool[m];
+  long currentOffset = 0;
   for (index = 0; index < 4; index++)
   {
-    cout << "NUMA Nodes = " << numa_nodes_configs[index] << endl;
+    // cout << "NUMA Nodes = " << numa_nodes_configs[index] << endl;
 
     // Set the number of numa nodes
     vertex_per_numa_node = ceil(n * 1.0 / numa_nodes_configs[index]);;
@@ -354,7 +355,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     {parallel_for(long i=0; i<n; i++) {
       //cout << "Compress edges of vertex " << i << endl;
       edgePts[i] = iEdges+charsUsedArr[i];
-      long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), 0, 
+      long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]), currentOffset, 
         degrees[i+1]-degrees[i], i, 
         edges + offsets[i], vertex_per_numa_node, 
         compress_flag, edge_first_compress_flag[index] + offsets[i]);
