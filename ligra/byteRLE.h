@@ -228,6 +228,7 @@ long sequentialCompressEdgeSet(uchar *edgeArray, long currentOffset, uintT degre
     
   //cout << "sequentialCompressEdgeSet - Current Offset = " << currentOffset << " - Degree = " << degree << " - Current Vertex = " << vertexNum << endl;
   // cout << "Compress Flag = " << compress_flag << endl;
+  cout << "Current Offset = " << currentOffset << endl;
   if (degree > 0) {
     // Added Mohamed 
     // Define last NUMA node used
