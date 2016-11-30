@@ -239,15 +239,15 @@ void encodeGraphFromFile(char * fname, bool isSymmetric, char * outFile, bool bi
 
     cout << "out edges: ";
     logCost(offsets, edges, n, m, Degrees);
-    //cout << "compressing out edges..." << endl;
+    cout << "compressing out edges..." << endl;
     // Compress the out-edges.
     uintE * nEdges = parallelCompressEdges(edges, offsets, n, m, Degrees);
     long totalSpace = sizes[2] = offsets[n];
     free(edges);
-    //cout << "out edges: ";
+    cout << "out edges: ";
 
     edges = nEdges;
-    //cout << "writing out edges..." << endl;
+    cout << "writing out edges..." << endl;
     //write to binary file
     ofstream out(outFile, ofstream::out | ios::binary);
     out.write((char * ) sizes, sizeof(long) * 3); //write n, m and isSymmetric
@@ -284,18 +284,18 @@ void encodeGraphFromFile(char * fname, bool isSymmetric, char * outFile, bool bi
     parallel_for(long i = 0; i < n; i++)
     Degrees[i] = tOffsets[i + 1] - tOffsets[i];
 
-    //cout << "in edges: ";
+    cout << "in edges: ";
     gapCost(tOffsets, inEdges, n, m, Degrees);
-    //cout << "in edges: ";
+    cout << "in edges: ";
     logCost(tOffsets, inEdges, n, m, Degrees);
 
-    //cout << "compressing in edges..." << endl;
+    cout << "compressing in edges..." << endl;
     uintE * ninEdges = parallelCompressEdges(inEdges, tOffsets, n, m, Degrees);
     long tTotalSpace[0];
     tTotalSpace[0] = tOffsets[n];
     free(inEdges);
     inEdges = ninEdges;
-    //cout << "writing in edges..." << endl;
+    cout << "writing in edges..." << endl;
     //write data for in-edges
     out.write((char * ) tTotalSpace, sizeof(long)); //space for in-edges
     out.write((char * ) tOffsets, sizeof(uintT) * (n + 1)); //write offsets
@@ -310,11 +310,11 @@ void encodeGraphFromFile(char * fname, bool isSymmetric, char * outFile, bool bi
   } else {
     gapCost(offsets, edges, n, m, Degrees);
     logCost(offsets, edges, n, m, Degrees);
-    //cout << "compressing..." << endl;
+    cout << "compressing..." << endl;
     uintE * nEdges = parallelCompressEdges(edges, offsets, n, m, Degrees);
     long totalSpace = sizes[2] = offsets[n];
     free(edges);
-    //cout << "writing edges..." << endl;
+    cout << "writing edges..." << endl;
     ofstream out(outFile, ofstream::out | ios::binary);
     out.write((char * ) sizes, sizeof(long) * 3); //write n, m and isSymmetric
     out.write((char * ) offsets, sizeof(uintT) * (n + 1)); //write offsets
@@ -486,12 +486,12 @@ void encodeWeightedGraphFromFile
         }
       }
 
-      //cout << "compressing out edges..." << endl;
+      cout << "compressing out edges..." << endl;
       // Compress the out-edges.
       uchar * nEdges = parallelCompressWeightedEdges(edges, offsets, n, m, Degrees);
       long totalSpace = sizes[2] = offsets[n];
       free(edges);
-      //cout << "writing out edges..." << endl;
+      cout << "writing out edges..." << endl;
       //write to binary file
       ofstream out(outFile, ofstream::out | ios::binary);
       out.write((char * ) sizes, sizeof(long) * 3); //write n, m and isSymmetric
@@ -528,12 +528,12 @@ void encodeWeightedGraphFromFile
 
       parallel_for(long i = 0; i < n; i++)
       Degrees[i] = tOffsets[i + 1] - tOffsets[i];
-      //cout << "compressing in edges..." << endl;
+      cout << "compressing in edges..." << endl;
       uchar * ninEdges = parallelCompressWeightedEdges(inEdges, tOffsets, n, m, Degrees);
       long tTotalSpace[0];
       tTotalSpace[0] = tOffsets[n];
       free(inEdges);
-      //cout << "writing in edges..." << endl;
+      cout << "writing in edges..." << endl;
       //write data for in-edges
       out.write((char * ) tTotalSpace, sizeof(long)); //space for in-edges
       out.write((char * ) tOffsets, sizeof(uintT) * (n + 1)); //write offsets
