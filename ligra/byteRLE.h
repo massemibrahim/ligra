@@ -414,7 +414,7 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
   cout << "Edge Count = " << m << endl;
   cout << "Similar Count = " << count_similar << endl;
   cout << "Different Count = " << count_different << endl;
-  cout << "Switch Count = " << count_different << endl;
+  cout << "Switch Count = " << switch_count << endl;
 
   // cout << "Edges" << endl;
   // for (index = 0; index < m; index++)
