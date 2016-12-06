@@ -389,9 +389,32 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     flag_sum = 0;
   }
 
+  int last_bit = edge_first_compress_flag[0][0];
+  int switch_count = 0;
+  for (index = 0; index < 4; index++)
+  {
+    for (int k = 0; k < m; k++)
+    {
+      if (edge_first_compress_flag[index][k] != last_bit)
+      {
+        last_bit = edge_first_compress_flag[index][k];
+        switch_count++; 
+      }
+    }
+  }
+  for (int k = 0; k < m; k++)
+  {
+    if (all_same_flag[k] != last_bit)
+    {
+      last_bit = all_same_flag[k];
+      switch_count++; 
+    }
+  }
+
   cout << "Edge Count = " << m << endl;
   cout << "Similar Count = " << count_similar << endl;
   cout << "Different Count = " << count_different << endl;
+  cout << "Switch Count = " << count_different << endl;
 
   // cout << "Edges" << endl;
   // for (index = 0; index < m; index++)
