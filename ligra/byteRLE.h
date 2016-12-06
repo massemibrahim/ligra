@@ -365,6 +365,8 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
 
   // Loop on the edge first flag arrays to set the all_same flag array
   int flag_sum = 0;
+  int count_different = 0;
+  int count_similar = 0;
   for (index = 0; index < m; index++)
   {
     for (int k = 0; k < 4; k++)
@@ -376,14 +378,20 @@ uintE *parallelCompressEdges(uintE *edges, uintT *offsets, long n, long m, uintE
     if (flag_sum == 0 || flag_sum == 4)
     {
       all_same_flag[index] = true;
+      count_similar++;
     }
     else
     {
       all_same_flag[index] = false;
+      count_different++;
     }
 
     flag_sum = 0;
   }
+
+  cout << "Edge Count = " << m << endl;
+  cout << "Similar Count = " << count_similar << endl;
+  cout << "Different Count = " << count_different << endl;
 
   // cout << "Edges" << endl;
   // for (index = 0; index < m; index++)
